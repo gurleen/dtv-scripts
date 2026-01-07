@@ -9,7 +9,8 @@ def col_sub(col_a: str, col_b: str, new_col_name: str) -> pl.Expr:
 
 
 def col_div(col_a: str, col_b: str, new_col_name: str) -> pl.Expr:
-    return pl.col(col_a).truediv(pl.col(col_b)).alias(new_col_name)
+    divide = pl.col(col_a).truediv(pl.col(col_b))
+    return pl.when(pl.col(col_b).eq(0)).then(0).otherwise(divide).alias(new_col_name)
 
 
 WON = pl.col("won")
@@ -134,9 +135,10 @@ for sport, url in zip(SPORTS, URLS):
             pl.format("{}-{}", "road_wins", "road_losses").alias("road_display"),
             pl.format("{}-{}", "conf_wins", "conf_losses").alias("conf_display"),
             col_div("wins", "total_games", "win_pct").round(3),
+            col_div("conf_wins", "conf_games", "conf_win_pct").round(3),
         )
         .filter(pl.col("conference_id").eq(CAA_CONF_ID))
-        .sort("win_pct", descending=True)
+        .sort(["conf_win_pct", "win_pct"], descending=True)
     )
 
     filename = f"{sport}_records.json"
