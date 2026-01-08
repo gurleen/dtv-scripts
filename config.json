@@ -1,0 +1,5 @@
+{
+  "output_dir": "./output",
+  "schedules_script": "schedules.py",
+  "scoreboard_script": "scoreboard.py"
+}
