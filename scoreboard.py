@@ -1,12 +1,15 @@
 import httpx
 import polars as pl
 from rich import print
+import argparse
+from pathlib import Path
 
 
-API_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/scoreboard?groups=10"
+MENS_API_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=10"
+WOMENS_API_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/scoreboard?groups=10"
 
 
-def parse_scoreboard() -> pl.DataFrame:
+def parse_scoreboard(api_url: str) -> pl.DataFrame:
     """
     Parse ESPN scoreboard API JSON and extract team IDs, scores, and game period.
 
@@ -19,8 +22,8 @@ def parse_scoreboard() -> pl.DataFrame:
     - period: current period (quarter)
     - status: game status (e.g., "Final", "In Progress")
     """
-    print(f"Fetching scoreboard data from {API_URL}...")
-    response = httpx.get(API_URL, follow_redirects=True)
+    print(f"Fetching scoreboard data from {api_url}...")
+    response = httpx.get(api_url, follow_redirects=True)
     data = response.json()
 
     games = []
@@ -70,13 +73,27 @@ def parse_scoreboard() -> pl.DataFrame:
 
 
 if __name__ == "__main__":
-    scoreboard = parse_scoreboard()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Generate basketball scoreboard JSON files")
+    parser.add_argument("output_path", nargs="?", default=".", help="Directory path to write output files (default: current directory)")
+    args = parser.parse_args()
 
-    print(f"\nFound {len(scoreboard)} games")
-    print("\nSample data:")
-    print(scoreboard.head(10))
+    # Ensure the output path exists
+    output_dir = Path(args.output_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Write to JSON
-    output_file = "scoreboard.json"
-    scoreboard.write_json(output_file)
-    print(f"\nWrote parsed data to {output_file}")
+    SPORTS = ["wbb", "mbb"]
+    URLS = [WOMENS_API_URL, MENS_API_URL]
+
+    for sport, url in zip(SPORTS, URLS):
+        print(f"\n=== Processing {sport.upper()} ===")
+        scoreboard = parse_scoreboard(url)
+
+        print(f"Found {len(scoreboard)} games")
+        print("\nSample data:")
+        print(scoreboard.head(10))
+
+        # Write to JSON
+        output_file = output_dir / f"{sport}_scoreboard.json"
+        scoreboard.write_json(output_file)
+        print(f"Wrote parsed data to {output_file}")

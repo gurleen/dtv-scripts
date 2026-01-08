@@ -2,6 +2,8 @@ import httpx
 import polars as pl
 from io import BytesIO
 from rich import print
+import argparse
+from pathlib import Path
 
 
 def col_sub(col_a: str, col_b: str, new_col_name: str) -> pl.Expr:
@@ -24,6 +26,14 @@ MENS_SCHEDULE_URL = "https://github.com/sportsdataverse/sportsdataverse-data/rel
 SPORTS = ["wbb", "mbb"]
 URLS = [WOMENS_SCHEDULE_URL, MENS_SCHEDULE_URL]
 
+# Parse command line arguments
+parser = argparse.ArgumentParser(description="Generate basketball records JSON files")
+parser.add_argument("output_path", nargs="?", default=".", help="Directory path to write output files (default: current directory)")
+args = parser.parse_args()
+
+# Ensure the output path exists
+output_dir = Path(args.output_path)
+output_dir.mkdir(parents=True, exist_ok=True)
 
 for sport, url in zip(SPORTS, URLS):
     print(f"Fetching {sport} game logs..")
@@ -141,6 +151,6 @@ for sport, url in zip(SPORTS, URLS):
         .sort(["conf_win_pct", "win_pct"], descending=True)
     )
 
-    filename = f"{sport}_records.json"
+    filename = output_dir / f"{sport}_records.json"
     records.write_json(filename)
     print(f"Wrote to {filename}")
